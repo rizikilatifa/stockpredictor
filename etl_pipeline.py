@@ -10,7 +10,7 @@ load_dotenv()
 DB_HOST = os.getenv("AIVEN_HOST")
 DB_PORT = os.getenv("AIVEN_PORT")
 DB_NAME = os.getenv("AIVEN_NAME")
-DB_USER = os.getenv("AIVEN_USER")
+DB_USER = os.getenv("AIVEN_USER") 
 DB_PASSWORD = os.getenv("AIVEN_PASSWORD")
 
 # Connect to PostgreSQL
