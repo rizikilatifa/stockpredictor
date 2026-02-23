@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import psycopg2
 import os
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -41,9 +42,11 @@ conn.commit()
 
 # Stock info
 TICKERS = ["AAPL", "MSFT", "GOOGL"]
+end_date = (datetime.now().date() + timedelta(days=1)).strftime("%Y-%m-%d")
+start_date = (datetime.now().date() - timedelta(days=365)).strftime("%Y-%m-%d")
 
 for ticker in TICKERS:
-    df = yf.download(ticker, start="2026-01-01", end="2026-02-20")
+    df = yf.download(ticker, start=start_date, end=end_date)
     df.reset_index(inplace=True)
     df['Ticker'] = ticker
     df = df[['Ticker', 'Date', 'Open', 'Close', 'Volume']]

@@ -16,6 +16,55 @@ from datetime import datetime, timedelta
 import numpy as np
 from dotenv import load_dotenv
 
+FINANCE_COLORS = {
+    "ink": "#07111f",
+    "slate": "#13233a",
+    "muted": "#4c627d",
+    "line": "#00a3ff",
+    "open": "#35d6ff",
+    "up": "#00b87a",
+    "down": "#ff4d4f",
+    "gold": "#ffb020",
+}
+
+
+def apply_finance_chart_theme(fig):
+    """Apply a consistent finance-style chart theme."""
+    fig.update_layout(
+        template="plotly_white",
+        paper_bgcolor="rgba(255,255,255,0.9)",
+        plot_bgcolor="rgba(246,250,255,0.82)",
+        font=dict(family="IBM Plex Sans, Segoe UI, sans-serif", color=FINANCE_COLORS["ink"]),
+        title_font=dict(color=FINANCE_COLORS["ink"]),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.68)",
+            font=dict(color=FINANCE_COLORS["ink"]),
+        ),
+        margin=dict(l=30, r=20, t=70, b=30),
+    )
+    fig.update_xaxes(
+        showgrid=True,
+        gridcolor="rgba(125,145,171,0.20)",
+        zeroline=False,
+        tickfont=dict(color=FINANCE_COLORS["ink"]),
+        title_font=dict(color=FINANCE_COLORS["ink"]),
+    )
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor="rgba(125,145,171,0.20)",
+        zeroline=False,
+        tickfont=dict(color=FINANCE_COLORS["ink"]),
+        title_font=dict(color=FINANCE_COLORS["ink"]),
+    )
+    fig.update_annotations(font=dict(color=FINANCE_COLORS["ink"]))
+    fig.update_layout(hoverlabel=dict(font=dict(color=FINANCE_COLORS["ink"])))
+    return fig
+
 # Page config
 st.set_page_config(
     page_title="Stock Prediction Dashboard",
@@ -27,30 +76,181 @@ st.set_page_config(
 # Custom CSS
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #1E88E5;
-        text-align: center;
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+    :root {
+        --ink: #07111f;
+        --slate: #13233a;
+        --muted: #4c627d;
+        --line: #00a3ff;
+        --up: #00b87a;
+        --down: #ff4d4f;
+        --gold: #ffb020;
+        --card: rgba(255, 255, 255, 0.80);
+        --card-border: rgba(84, 114, 152, 0.30);
+    }
+    .stApp {
+        background:
+            radial-gradient(920px 440px at -8% -24%, rgba(0,184,122,0.20) 0%, rgba(255,255,255,0) 72%),
+            radial-gradient(980px 420px at 110% -20%, rgba(0,163,255,0.23) 0%, rgba(255,255,255,0) 70%),
+            linear-gradient(165deg, #f5f9ff 0%, #ebf4ff 50%, #f8fcff 100%);
+        color: var(--ink);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    }
+    .stApp, .stApp p, .stApp span, .stApp label,
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {
+        color: var(--ink);
+    }
+    [data-testid="stMarkdownContainer"] * {
+        color: var(--ink);
+    }
+    [data-testid="stMetricLabel"], [data-testid="stMetricValue"], [data-testid="stMetricDelta"] {
+        color: var(--slate) !important;
+    }
+    [data-testid="stDataFrame"], [data-testid="stTable"] {
+        color: var(--ink) !important;
+    }
+    [data-baseweb="select"] *, [data-baseweb="input"] * {
+        color: var(--ink) !important;
+    }
+    [data-testid="stTabs"] button p {
+        color: var(--slate) !important;
+    }
+    .stButton > button,
+    [data-testid="stDownloadButton"] > button {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+        color: #f8fafc !important;
+        border: 1px solid rgba(3, 105, 161, 0.75) !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 6px 16px rgba(3, 105, 161, 0.25) !important;
+    }
+    .stButton > button:hover,
+    [data-testid="stDownloadButton"] > button:hover {
+        background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
+        color: #ffffff !important;
+    }
+    .stButton > button:disabled,
+    [data-testid="stDownloadButton"] > button:disabled {
+        background: #94a3b8 !important;
+        color: #e2e8f0 !important;
+        border-color: #94a3b8 !important;
+    }
+    section[data-testid="stSidebar"] {
+        background:
+            radial-gradient(620px 280px at -10% -30%, rgba(0,184,122,0.18) 0%, rgba(0,0,0,0) 74%),
+            linear-gradient(180deg, #07101d 0%, #0d1f35 55%, #102744 100%);
+        border-right: 1px solid rgba(117, 158, 206, 0.24);
+    }
+    section[data-testid="stSidebar"] * {
+        color: #e2e8f0 !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+        color: var(--slate);
+    }
+    [data-testid="stMetricDelta"] {
+        font-weight: 600;
+    }
+    [data-testid="stTabs"] button {
+        border-radius: 999px;
+        margin-right: 0.35rem;
+        border: 1px solid rgba(84, 114, 152, 0.32);
+        background: rgba(255,255,255,0.74);
+        font-weight: 600;
+    }
+    [data-testid="stTabs"] button[aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(0,163,255,0.15) 0%, rgba(0,184,122,0.17) 100%);
+        border-color: rgba(0, 163, 255, 0.45);
+        box-shadow: 0 6px 14px rgba(0, 83, 130, 0.12);
+    }
+    [data-testid="stPlotlyChart"], .stDataFrame, [data-testid="stExpander"] {
+        border-radius: 18px;
+        border: 1px solid var(--card-border);
+        background: var(--card);
+        box-shadow: 0 18px 36px rgba(9, 25, 48, 0.09);
+        padding: 0.4rem;
+    }
+    .hero-shell {
+        border: 1px solid rgba(84,114,152,0.32);
+        background:
+            radial-gradient(540px 180px at 8% -30%, rgba(0,163,255,0.20) 0%, rgba(255,255,255,0) 68%),
+            radial-gradient(620px 200px at 100% -40%, rgba(0,184,122,0.18) 0%, rgba(255,255,255,0) 70%),
+            linear-gradient(145deg, rgba(255,255,255,0.94) 0%, rgba(241,248,255,0.86) 100%);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 1.1rem 1.25rem 0.9rem 1.25rem;
         margin-bottom: 1rem;
+        box-shadow: 0 18px 40px rgba(7, 17, 31, 0.12);
+        animation: rise-in 480ms ease-out;
+    }
+    .main-header {
+        font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+        font-size: clamp(1.5rem, 2.4vw, 2.6rem);
+        color: var(--ink);
+        margin: 0;
+        letter-spacing: 0.2px;
+    }
+    .hero-sub {
+        margin-top: 0.3rem;
+        color: #1e3a5f !important;
+        font-size: 0.98rem;
+        letter-spacing: 0.15px;
+    }
+    .ticker-ribbon {
+        margin-top: 0.85rem;
+        border: 1px solid rgba(84,114,152,0.28);
+        background: rgba(255,255,255,0.58);
+        border-radius: 999px;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    .ticker-track {
+        display: inline-block;
+        padding: 0.5rem 0;
+        animation: ticker-scroll 18s linear infinite;
+        color: #0f2745 !important;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+    }
+    .hero-chip {
+        display: inline-block;
+        background: rgba(255,176,32,0.18);
+        color: #7a4a00;
+        border: 1px solid rgba(255,176,32,0.34);
+        font-size: 0.76rem;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 0.24rem 0.55rem;
+        margin-bottom: 0.42rem;
     }
     .metric-card {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 10px;
+        background:
+            linear-gradient(160deg, rgba(255,255,255,0.96), rgba(236,247,255,0.82));
+        border: 1px solid var(--card-border);
+        padding: 0.8rem;
+        border-radius: 14px;
         text-align: center;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        box-shadow: 0 12px 26px rgba(8, 22, 44, 0.10);
     }
     .prediction-up {
-        color: #26a69a;
+        color: var(--up);
         font-weight: bold;
     }
     .prediction-down {
-        color: #ef5350;
+        color: var(--down);
         font-weight: bold;
     }
     .info-text {
         font-size: 0.9rem;
-        color: #666;
+        color: var(--muted);
+    }
+    @keyframes rise-in {
+        from { opacity: 0; transform: translateY(10px);}
+        to { opacity: 1; transform: translateY(0);}
+    }
+    @keyframes ticker-scroll {
+        from { transform: translateX(0%);}
+        to { transform: translateX(-50%);}
     }
 </style>
 """, unsafe_allow_html=True)
@@ -59,9 +259,8 @@ st.markdown("""
 load_dotenv()
 
 # Database connection function
-@st.cache_resource
 def get_database_connection():
-    """Create database connection (cached)"""
+    """Create a fresh database connection"""
     try:
         conn = psycopg2.connect(
             host=os.getenv("AIVEN_HOST"),
@@ -82,10 +281,12 @@ def load_stock_data():
     """Load raw stock data from database"""
     conn = get_database_connection()
     if conn:
-        query = "SELECT * FROM stock_data ORDER BY ticker, date"
-        df = pd.read_sql(query, conn)
-        conn.close()
-        return df
+        try:
+            query = "SELECT * FROM stock_data ORDER BY ticker, date"
+            df = pd.read_sql(query, conn)
+            return df
+        finally:
+            conn.close()
     return pd.DataFrame()
 
 @st.cache_data(ttl=3600)
@@ -96,11 +297,12 @@ def load_features_data():
         try:
             query = "SELECT * FROM stock_features ORDER BY ticker, date"
             df = pd.read_sql(query, conn)
-            conn.close()
             return df
-        except:
+        except Exception:
             st.warning("Features table not found. Run feature_engineering.py first.")
             return pd.DataFrame()
+        finally:
+            conn.close()
     return pd.DataFrame()
 
 @st.cache_data(ttl=3600)
@@ -127,8 +329,21 @@ def load_models():
     return models
 
 # Header
-st.markdown("<h1 class='main-header'>📈 Stock Prediction Dashboard</h1>", unsafe_allow_html=True)
-st.markdown("### Extract → Transform → Load → Predict → Visualize")
+st.markdown(
+    """
+    <div class="hero-shell">
+        <div class="hero-chip">MARKET INTELLIGENCE</div>
+        <h1 class="main-header">Stock Prediction Dashboard</h1>
+        <div class="hero-sub">Extract -> Transform -> Load -> Predict -> Visualize</div>
+        <div class="ticker-ribbon">
+            <div class="ticker-track">
+                &nbsp;&nbsp;AAPL UP Momentum Build &nbsp;&nbsp;|&nbsp;&nbsp; MSFT UP Institutional Strength &nbsp;&nbsp;|&nbsp;&nbsp; GOOGL DOWN Mean Reversion Watch &nbsp;&nbsp;|&nbsp;&nbsp; AAPL UP Momentum Build &nbsp;&nbsp;|&nbsp;&nbsp; MSFT UP Institutional Strength &nbsp;&nbsp;|&nbsp;&nbsp; GOOGL DOWN Mean Reversion Watch &nbsp;&nbsp;
+            </div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 st.markdown("---")
 
 # Load all data
@@ -183,6 +398,9 @@ if not stock_df.empty:
     ticker_data['date'] = pd.to_datetime(ticker_data['date'])
     ticker_data = ticker_data[(ticker_data['date'] >= pd.to_datetime(start_date)) & 
                                (ticker_data['date'] <= pd.to_datetime(end_date))]
+    if ticker_data.empty:
+        st.warning("No rows found for the selected ticker/date range. Please adjust filters.")
+        st.stop()
     
     # Get features if available
     ticker_features = features_df[features_df['ticker'] == selected_ticker].copy() if not features_df.empty else pd.DataFrame()
@@ -198,14 +416,18 @@ if not stock_df.empty:
     
     # TAB 1: Price Analysis
     with tab1:
+        current_close = ticker_data['close'].iloc[-1]
+        previous_close = ticker_data['close'].iloc[-2] if len(ticker_data) > 1 else current_close
+        current_delta_pct = ((current_close / previous_close - 1) * 100) if previous_close != 0 else 0
+
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
             st.metric(
                 "Current Price",
-                f"${ticker_data['close'].iloc[-1]:.2f}",
-                f"{((ticker_data['close'].iloc[-1] / ticker_data['close'].iloc[-2] - 1) * 100):.2f}%"
+                f"${current_close:.2f}",
+                f"{current_delta_pct:.2f}%"
             )
             st.markdown("</div>", unsafe_allow_html=True)
         
@@ -253,25 +475,28 @@ if not stock_df.empty:
                 y=ticker_data['close'],
                 mode='lines',
                 name='Close Price',
-                line=dict(color='#1E88E5', width=2)
+                line=dict(color=FINANCE_COLORS["line"], width=2.4)
             ),
             row=1, col=1
         )
-        
+
         fig.add_trace(
             go.Scatter(
                 x=ticker_data['date'],
                 y=ticker_data['open'],
                 mode='lines',
                 name='Open Price',
-                line=dict(color='#FFA726', width=1, dash='dot')
+                line=dict(color=FINANCE_COLORS["open"], width=1.5, dash='dot')
             ),
             row=1, col=1
         )
         
         # Volume bar chart
-        colors = ['red' if ticker_data['close'].iloc[i] < ticker_data['open'].iloc[i] 
-                  else 'green' for i in range(len(ticker_data))]
+        colors = [
+            FINANCE_COLORS["down"] if ticker_data['close'].iloc[i] < ticker_data['open'].iloc[i]
+            else FINANCE_COLORS["up"]
+            for i in range(len(ticker_data))
+        ]
         
         fig.add_trace(
             go.Bar(
@@ -288,9 +513,9 @@ if not stock_df.empty:
             yaxis_title="Price ($)",
             yaxis2_title="Volume",
             xaxis_rangeslider_visible=False,
-            height=600,
-            template="plotly_dark"
+            height=600
         )
+        apply_finance_chart_theme(fig)
         
         st.plotly_chart(fig, use_container_width=True)
         
@@ -314,7 +539,7 @@ if not stock_df.empty:
                 y=ticker_features['close'],
                 mode='lines',
                 name='Close Price',
-                line=dict(color='black', width=2)
+                line=dict(color=FINANCE_COLORS["ink"], width=2.3)
             ))
             
             fig.add_trace(go.Scatter(
@@ -322,7 +547,7 @@ if not stock_df.empty:
                 y=ticker_features['ma_5'],
                 mode='lines',
                 name='5-day MA',
-                line=dict(color='blue', width=1.5)
+                line=dict(color=FINANCE_COLORS["line"], width=1.8)
             ))
             
             fig.add_trace(go.Scatter(
@@ -330,16 +555,16 @@ if not stock_df.empty:
                 y=ticker_features['ma_20'],
                 mode='lines',
                 name='20-day MA',
-                line=dict(color='red', width=1.5)
+                line=dict(color=FINANCE_COLORS["gold"], width=1.8)
             ))
             
             fig.update_layout(
                 title="Moving Averages",
                 xaxis_title="Date",
                 yaxis_title="Price ($)",
-                height=400,
-                template="plotly_dark"
+                height=400
             )
+            apply_finance_chart_theme(fig)
             
             st.plotly_chart(fig, use_container_width=True)
             
@@ -352,9 +577,11 @@ if not stock_df.empty:
                     x='price_change_pct',
                     nbins=20,
                     title="Daily Returns Distribution",
-                    labels={'price_change_pct': 'Return (%)'}
+                    labels={'price_change_pct': 'Return (%)'},
+                    color_discrete_sequence=[FINANCE_COLORS["line"]]
                 )
                 fig.update_layout(height=300)
+                apply_finance_chart_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
             
             with col2:
@@ -365,6 +592,7 @@ if not stock_df.empty:
                     points="all"
                 )
                 fig.update_layout(height=300)
+                apply_finance_chart_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
             
             # Features correlation
@@ -386,6 +614,7 @@ if not stock_df.empty:
                     color_continuous_scale='RdBu_r'
                 )
                 fig.update_layout(height=500)
+                apply_finance_chart_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("No feature data available. Run feature_engineering.py first.")
@@ -443,7 +672,7 @@ if not stock_df.empty:
                     y=ticker_features['close'][:-1],
                     mode='lines',
                     name='Historical',
-                    line=dict(color='blue')
+                    line=dict(color=FINANCE_COLORS["line"], width=2.2)
                 ))
                 
                 # Last known point
@@ -452,7 +681,7 @@ if not stock_df.empty:
                     y=[ticker_features['close'].iloc[-1]],
                     mode='markers',
                     name='Last Close',
-                    marker=dict(size=10, color='green')
+                    marker=dict(size=10, color=FINANCE_COLORS["up"])
                 ))
                 
                 # Prediction point (if available)
@@ -464,16 +693,16 @@ if not stock_df.empty:
                             y=pred_data['next_day_close'],
                             mode='markers',
                             name='Actual Next Day',
-                            marker=dict(size=8, color='red', symbol='x')
+                            marker=dict(size=8, color=FINANCE_COLORS["down"], symbol='x')
                         ))
                 
                 fig.update_layout(
                     title=f"{selected_ticker} - Price Prediction Analysis",
                     xaxis_title="Date",
                     yaxis_title="Price ($)",
-                    height=400,
-                    template="plotly_dark"
+                    height=400
                 )
+                apply_finance_chart_theme(fig)
                 
                 st.plotly_chart(fig, use_container_width=True)
                 
@@ -492,9 +721,10 @@ if not stock_df.empty:
                     orientation='h',
                     title="Feature Importance",
                     color='Importance',
-                    color_continuous_scale='Viridis'
+                    color_continuous_scale='Tealgrn'
                 )
                 fig.update_layout(height=300)
+                apply_finance_chart_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
     
     # TAB 4: Feature Engineering
@@ -519,8 +749,11 @@ if not stock_df.empty:
             
             with col2:
                 st.markdown("#### Feature Statistics")
-                stats_df = ticker_features[num_features].describe().T
-                st.dataframe(stats_df[['mean', 'std', 'min', 'max']])
+                if num_features:
+                    stats_df = ticker_features[num_features].describe().T
+                    st.dataframe(stats_df[['mean', 'std', 'min', 'max']])
+                else:
+                    st.info("No numeric feature columns available.")
             
             # Feature visualization selector
             st.markdown("### Feature Explorer")
@@ -533,8 +766,10 @@ if not stock_df.empty:
                 ticker_features,
                 x='date',
                 y=selected_feature,
-                title=f"{selected_feature} Over Time"
+                title=f"{selected_feature} Over Time",
+                color_discrete_sequence=[FINANCE_COLORS["line"]]
             )
+            apply_finance_chart_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("No feature data available. Run feature_engineering.py first.")

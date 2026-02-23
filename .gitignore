@@ -1,4 +1,24 @@
+# Environment and secrets
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# Python cache
 __pycache__/
 *.pyc
+
+# Local notebooks/artifacts
 examplecode.ipynb
+*.pkl
+*_predictions.png
+predictions/
+
+# Secret scanning local outputs
+.secrets.baseline
+secrets-report.*

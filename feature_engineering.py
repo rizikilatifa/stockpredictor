@@ -9,11 +9,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-host = os.getenv("AIVEN_HOST"),
-port = os.getenv("AIVEN_PORT"),
-database = os.getenv("AIVEN_NAME"),
-user = os.getenv("AIVEN_USER"),
-password = os.getenv("AIVEN_PASSWORD"),
+host = os.getenv("AIVEN_HOST")
+port = os.getenv("AIVEN_PORT")
+database = os.getenv("AIVEN_NAME")
+user = os.getenv("AIVEN_USER")
+password = os.getenv("AIVEN_PASSWORD")
 
 
 #Database connection

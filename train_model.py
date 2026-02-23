@@ -14,6 +14,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+REQUIRED_FEATURE_COLUMNS = [
+    'prev_close', 'ma_5', 'ma_20', 'price_change_pct',
+    'volume_change', 'daily_range', 'day_of_week', 'month',
+    'open', 'volume'
+]
+
 # Load features from database
 conn = psycopg2.connect(
     host=os.getenv("AIVEN_HOST"),
@@ -26,7 +32,7 @@ conn = psycopg2.connect(
 
 query = "SELECT * FROM stock_features ORDER BY ticker, date"
 df = pd.read_sql(query, conn)
-print(f"Loaded{len(df)} rows with features")
+print(f"Loaded {len(df)} rows with features")
 
 # We'll build a separate model for each ticker
 tickers = df['ticker'].unique()
@@ -40,18 +46,23 @@ for ticker in tickers:
    ticker_data = df[df['ticker'] == ticker].copy()
    
    # Select features (X) and target (y)
-   feature_columns = [
-      'prev_close', 'ma_5', 'ma_20', 'price_change_pct',
-        'volume_change', 'daily_range', 'day_of_week', 'month',
-        'open', 'volume'
-    ]
-   
-   X = ticker_data[feature_columns]
-   y = ticker_data['next_day_close']
+   missing_cols = [c for c in REQUIRED_FEATURE_COLUMNS + ['next_day_close'] if c not in ticker_data.columns]
+   if missing_cols:
+      print(f"Skipping {ticker}: missing required columns {missing_cols}")
+      continue
+
+   model_df = ticker_data[REQUIRED_FEATURE_COLUMNS + ['next_day_close']].dropna().copy()
+   if len(model_df) < 20:
+      print(f"Skipping {ticker}: only {len(model_df)} usable rows after dropping NaNs")
+      continue
+
+   X = model_df[REQUIRED_FEATURE_COLUMNS]
+   y = model_df['next_day_close']
 
    # split into training (80%) and testing (20%)
-   X_train, X_test, y_train, y_test = train_test_split(X, y, test_size =0.2, random_state=42, shuffle = False
-                                                       )
+   X_train, X_test, y_train, y_test = train_test_split(
+      X, y, test_size=0.2, random_state=42, shuffle=False
+   )
    
    print(f"Training on {len(X_train)} days, Testing on { len(X_test)} days")
 
@@ -78,7 +89,7 @@ for ticker in tickers:
 
    # Feature importance
    importance = pd.DataFrame({
-      'feature' : feature_columns,
+      'feature' : REQUIRED_FEATURE_COLUMNS,
       'importance' : model.feature_importances_
    }).sort_values('importance', ascending=False)
 
